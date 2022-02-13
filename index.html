@@ -11,6 +11,10 @@
         body {
             padding: 0;
             margin: 0;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 25px;
+            font-weight: 900;
+            color: #fff;
         }
 
         .center-flex {
@@ -27,51 +31,129 @@
             left: 50%;
             transform: translate(-50%, -50%);
         }
+
+        #box span {
+            padding: 10px;
+        }
     </style>
 </head>
 
 <body>
 
-    <div class="center center-flex" style="width: 100%; height: 100%; background-color: red;">
-        <div id="mcqueen"></div> |
-        <div id="sigma"></div>
+    <div id="box" class="center center-flex" style="width: 100%; height: 100%; background-color: red;">
+        <span id="quote"></span> - <span id="badge"></span>
     </div>
 
-    <script>
-        let wasmExports = null;
-        let wasmMemory = new WebAssembly.Memory({ initial: 256, maximum: 256 });
-        let wasmTable = new WebAssembly.Table({
-            'initial': 1,
-            'maximum': 1,
-            'element': 'anyfunc'
-        });
-        let asmLibraryArg = {
-            "__handle_stack_overflow": () => { },
-            "emscripten_resize_heap": () => { },
-            "__lock": () => { },
-            "__unlock": () => { },
-            "memory": wasmMemory,
-            "table": wasmTable
-        };
+    <script defer>
 
-        var info = {
-            'env': asmLibraryArg,
-            'wasi_snapshot_preview1': asmLibraryArg
-        };
+        let XHU_WASM = null;
 
-        async function loadWasm() {
-            let response = await fetch('port.wasm');
+        (async () => {
+            // let wasmPromise = fetch('wasm/port.wasm');
+            XHU_WASM = await WebAssembly.instantiateStreaming(fetch('wasm/c/index.wasm'));
+
+            const { instance } = XHU_WASM;
+            const { exports } = instance;
+            const { memory } = exports;
+            const { buffer } = memory;
+
+            // console.log(XHU_WASM, instance, exports, memory, buffer);
+            console.log(' wasm : ', XHU_WASM);
+            console.log(' instance : ', instance);
+            console.log(' exports : ', exports);
+            console.log(' memory : ', memory);
+            console.log(' buffer : ', buffer);
+
+
+            let pointer = exports.mcqueen();
+            const XHU_BUFFER = new Uint8Array(buffer);
+            let quote = '';
+            // console.log(pointer, XHU_BUFFER[pointer])
+            for (let idx = pointer; XHU_BUFFER[idx]; idx++) {
+                quote += String.fromCharCode(XHU_BUFFER[idx]);
+            }
+
+            document.getElementById('quote').textContent = quote;
+
+            let XUM = exports.sigma(11, 98);
+            document.getElementById('badge').textContent = exports.sigma(XUM, -14);;
+        })()
+
+        /*
+        (async () => {
+            // let wasmPromise = fetch('wasm/port.wasm');
+            XHU_WASM = await WebAssembly.instantiateStreaming(fetch('wasm/cpp/index.wasm'));
+
+            // const { instance } = XHU_WASM;
+            // const { exports } = instance;
+            // const { memory } = exports;
+            // const { buffer } = memory;
+
+            // console.log(' wasm : ', XHU_WASM);
+            // console.log(' instance : ', instance);
+            // console.log(' exports : ', exports);
+            // console.log(' memory : ', memory);
+            // console.log(' buffer : ', buffer);
+
+
+            // let pointer = exports.mcqueen();
+            // const XHU_BUFFER = new Uint8Array(buffer);
+            // let quote = '';
+            // // console.log(pointer, XHU_BUFFER[pointer])
+            // for (let idx = pointer; XHU_BUFFER[idx]; idx++) {
+            //     quote += String.fromCharCode(XHU_BUFFER[idx]);
+            // }
+
+            // document.getElementById('quote').textContent = quote;
+
+            // let XUM = exports.sigma(11, 98);
+            // document.getElementById('badge').textContent = exports.sigma(XUM, -14);;
+        })()
+
+        (async () => {
+            let wasmMemory = new WebAssembly.Memory({ initial: 256, maximum: 256 });
+            let wasmTable = new WebAssembly.Table({
+                'initial': 1,
+                'maximum': 1,
+                'element': 'anyfunc'
+            });
+
+            let asmLibraryArg = {
+                "__handle_stack_overflow": () => { },
+                "emscripten_resize_heap": () => { },
+
+
+                "_embind_register_class": () => { },
+                "_embind_register_class_class_function": () => { },
+                "_embind_register_class_constructor": () => { },
+                "_embind_register_class_function": () => { },
+                "_embind_register_class_property": () => { },
+
+
+                "__lock": () => { },
+                "__unlock": () => { },
+                "memory": wasmMemory,
+                "table": wasmTable
+            };
+
+            let info = {
+                'env': asmLibraryArg,
+                'wasi_snapshot_preview1': asmLibraryArg
+            };
+
+            let response = await fetch('wasm/cpp/index.wasm');
+
+            console.log(response);
+
             let bytes = await response.arrayBuffer();
-            let wasmObj = await WebAssembly.instantiate(bytes, info);
-            wasmExports = wasmObj.instance.exports;
+            // let wasmObj = await WebAssembly.instantiate(bytes, info);
 
-            console.log(wasmExports);
+            XHU_WASM = await WebAssembly.instantiateStreaming(fetch('wasm/cpp/index.wasm'));
 
-            document.getElementById('mcqueen').textContent = wasmExports.mcqueen();
-            document.getElementById('sigma').textContent = wasmExports.sigma(11, 98);
-        }
+            console.log(wasmObj);
+        })()
+        */
 
-        loadWasm();
     </script>
 </body>
 
